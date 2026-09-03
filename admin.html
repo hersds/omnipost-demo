@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>پنل مدیریت — Omnipost</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="mark">✦</span> Omnipost <span class="dim" style="font-size:.8rem">· مدیریت</span></a>
+    <div class="spacer"></div>
+    <a href="index.html" class="link">مشاهده فروشگاه</a>
+    <button class="icon" data-theme-toggle aria-label="حالت">🌙</button>
+  </div>
+</header>
+
+<main class="section">
+  <div class="wrap">
+
+    <!-- token gate -->
+    <div class="panel" id="gate">
+      <h2>🔐 ورود به پنل</h2>
+      <div class="field">
+        <label for="token">کلید مدیریت (Admin Token)</label>
+        <input id="token" type="password" placeholder="X-Admin-Token" dir="ltr" style="text-align:center" />
+      </div>
+      <button class="btn btn-primary" id="gateBtn">ورود</button>
+      <p class="dim" style="margin-top:.7rem;font-size:.85rem">
+        این کلید از تنظیمات سرور (wrangler / environment variables) می‌آید و در مرورگر شما ذخیره می‌شود.
+      </p>
+    </div>
+
+    <!-- admin content -->
+    <div id="adminBody" style="display:none">
+
+      <!-- TELEGRAM STATUS -->
+      <div class="panel">
+        <div class="row">
+          <h2>📣 همگام‌سازی تلگرام</h2>
+          <div class="spacer"></div>
+          <button class="mini" id="tgTest">📡 ارسال پیام تست</button>
+        </div>
+        <p class="dim" style="font-size:.9rem;margin-top:.4rem">
+          هر محصول جدید/ویرایش‌شده به‌صورت خودکار در کانال‌های تنظیم‌شده منتشر/ویرایش می‌شود.
+        </p>
+        <p class="tg-status" id="tgStatus"></p>
+      </div>
+
+      <!-- ADD / EDIT PRODUCT -->
+      <div class="panel">
+        <h2 id="formTitle">➕ افزودن محصول جدید</h2>
+        <input type="hidden" id="editId" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div class="field" style="grid-column:1/-1">
+            <label>عنوان محصول *</label>
+            <input id="f_title" />
+          </div>
+          <div class="field">
+            <label>دسته‌بندی</label>
+            <input id="f_category" placeholder="مثلا: لوازم جانبی" />
+          </div>
+          <div class="field">
+            <label>موجودی</label>
+            <input id="f_stock" type="number" value="1" min="0" />
+          </div>
+          <div class="field">
+            <label>قیمت (تومان) *</label>
+            <input id="f_price" type="number" min="0" />
+          </div>
+          <div class="field">
+            <label>قیمت قبل (اختیاری)</label>
+            <input id="f_old" type="number" min="0" placeholder="برای نمایش تخفیف" />
+          </div>
+          <div class="field" style="grid-column:1/-1">
+            <label>توضیحات</label>
+            <textarea id="f_desc" rows="3"></textarea>
+          </div>
+          <div class="field" style="grid-column:1/-1">
+            <label>عکس‌ها (لینک هرکدام در یک خط — حداقل یک عکس برای تلگرام)</label>
+            <textarea id="f_images" rows="3" dir="ltr" style="text-align:left"
+              placeholder="https://example.com/img1.jpg&#10;https://example.com/img2.jpg"></textarea>
+          </div>
+          <div class="field" style="grid-column:1/-1">
+            <label>ویژگی‌ها (هرکدام در یک خط — در تلگرام نمایش داده می‌شود)</label>
+            <textarea id="f_features" rows="2" placeholder="ضمانت اصالت&#10;ارسال سریع"></textarea>
+          </div>
+        </div>
+        <div class="row" style="margin-top:.6rem">
+          <label class="row" style="gap:.4rem"><input type="checkbox" id="f_featured" /> ستاره‌دار (اول صفحه اصلی)</label>
+          <div class="spacer"></div>
+          <button class="btn btn-ghost" id="formReset">پاک کردن فرم</button>
+          <button class="btn btn-primary" id="formSave">💾 ذخیره و انتشار در تلگرام</button>
+        </div>
+        <p class="msg" id="formMsg"></p>
+      </div>
+
+      <!-- PRODUCTS TABLE -->
+      <div class="panel">
+        <div class="row">
+          <h2>📦 محصولات</h2>
+          <div class="spacer"></div>
+          <button class="mini" id="reload">🔄 بارگذاری مجدد</button>
+        </div>
+        <div style="overflow-x:auto;margin-top:.8rem">
+          <table class="tbl" id="prodTable">
+            <thead><tr>
+              <th></th><th>عنوان</th><th>قیمت</th><th>موجودی</th><th>وضعیت</th><th>پست تلگرام</th><th></th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ACTIVATIONS -->
+      <div class="panel">
+        <div class="row">
+          <h2>🔑 کدهای فعالسازی (دسترسی GitHub خریداران)</h2>
+          <div class="spacer"></div>
+          <button class="mini" id="actNew">+ ایجاد کد جدید</button>
+        </div>
+        <div id="actForm" style="display:none" class="panel" >
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem">
+            <div class="field"><label>کد فعالسازی</label><input id="a_code" dir="ltr" placeholder="OMNI-XXXX-XXXX"></div>
+            <div class="field"><label>GitHub username خریدار</label><input id="a_login" dir="ltr" placeholder="username"></div>
+            <div class="field" style="grid-column:1/-1"><label>آدرس ریپو (owner/repo)</label><input id="a_repo" dir="ltr" placeholder="hersds/omnipost-buyer-1"></div>
+          </div>
+          <button class="btn btn-primary" id="actSave">ذخیره کد</button>
+        </div>
+        <p class="dim" style="font-size:.85rem;margin-top:.4rem">
+          ⚠️ هر کد یکبار مصرف است. برای هر خریدار یک ریپوی جداگانه (fork) بسازید و آنجا کدش را ثبت کنید.
+        </p>
+        <div style="overflow-x:auto;margin-top:.8rem">
+          <table class="tbl" id="actTable">
+            <thead><tr><th>کد</th><th>GitHub</th><th>ریپو</th><th>وضعیت</th><th>تاریخ</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ORDERS -->
+      <div class="panel">
+        <h2>🧾 سفارش‌ها</h2>
+        <div style="overflow-x:auto;margin-top:.8rem">
+          <table class="tbl" id="orderTable">
+            <thead><tr><th>شماره پیگیری</th><th>محصول</th><th>مبلغ</th><th>وضعیت</th><th>تاریخ</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap"><span>✦ Omnipost</span><a href="index.html">صفحه اصلی</a></div>
+</footer>
+
+<script src="js/app.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const T = localStorage.getItem("op-admin-token") || "";
+
+  const gate = document.getElementById("gate");
+  const body = document.getElementById("adminBody");
+
+  function setToken(t) { localStorage.setItem("op-admin-token", t); location.reload(); }
+  document.getElementById("gateBtn").addEventListener("click", () => {
+    const t = document.getElementById("token").value.trim();
+    if (t) setToken(t);
+  });
+  if (T) { localStorage.setItem("op-admin-token", T); }
+
+  const H = { "Content-Type": "application/json", "X-Admin-Token": T };
+  const admin = {
+    async api(path, opts = {}) {
+      const r = await fetch("/api/admin" + path, { headers: H, ...opts });
+      if (r.status === 401) { OP.toast("کلید مدیریت نامعتبر است", "err"); location.reload(); return null; }
+      return r.json();
+    }
+  };
+
+  async function init() {
+    if (!T) return;
+    const me = await admin.api("/products");
+    if (me === null) return; // wrong token, handled
+    gate.style.display = "none";
+    body.style.display = "block";
+    loadProducts();
+    loadActivations();
+    loadOrders();
+    testTelegram();
+  }
+
+  /* ---------- products ---------- */
+  async function loadProducts() {
+    const rows = await admin.api("/products");
+    if (!rows) return;
+    const tb = document.querySelector("#prodTable tbody");
+    tb.innerHTML = rows.map(p => `
+      <tr>
+        <td>${p.images && p.images[0] ? `<img src="${p.images[0]}" style="width:44px;height:44px;object-fit:cover;border-radius:8px">` : "—"}</td>
+        <td>${p.title}${p.featured ? " ⭐" : ""}</td>
+        <td>${OP.fmt(p.price)}${p.old_price ? ` <s class="dim">${OP.fmt(p.old_price)}</s>` : ""}</td>
+        <td>${p.stock}</td>
+        <td>${p.active ? '<span class="dim" style="color:var(--ok)">فعال</span>' : '<span class="dim" style="color:var(--bad)">غیرفعال</span>'}</td>
+        <td class="tg-cell" data-id="${p.id}">…</td>
+        <td>
+          <button class="mini" data-edit="${p.id}">ویرایش</button>
+          ${p.active ? `<button class="mini" data-del="${p.id}" style="border-color:var(--bad)">حذف</button>` : ""}
+        </td>
+      </tr>`).join("") || `<tr><td colspan="7" class="dim">محصولی نیست</td></tr>`;
+
+    tb.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => startEdit(+b.dataset.edit, rows)));
+    tb.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => delProduct(+b.dataset.del)));
+    rows.forEach(p => {
+      // fetch telegram posts status
+      admin.api(`/telegram/posts?product_id=${p.id}`).then(d => {
+        const cell = document.querySelector(`.tg-cell[data-id="${p.id}"]`);
+        if (cell && d) {
+          const n = (d.posts || []).length;
+          cell.innerHTML = n ? `<span class="dim" style="color:var(--ok)">${n} پست فعال</span>` : '<span class="dim">—</span>';
+        }
+      }).catch(()=>{});
+    });
+  }
+
+  const formFields = ["f_title","f_category","f_stock","f_price","f_old","f_desc","f_images","f_features","f_featured"];
+  function resetForm() {
+    formFields.forEach(id => { const el = document.getElementById(id); el.value = id==="f_stock" ? "1" : ""; el.checked = false; });
+    document.getElementById("editId").value = "";
+    document.getElementById("formTitle").textContent = "➕ افزودن محصول جدید";
+    document.getElementById("formSave").textContent = "💾 ذخیره و انتشار در تلگرام";
+  }
+  document.getElementById("formReset").addEventListener("click", resetForm);
+
+  function startEdit(id, rows) {
+    const p = rows.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById("editId").value = p.id;
+    document.getElementById("f_title").value = p.title;
+    document.getElementById("f_category").value = p.category || "";
+    document.getElementById("f_stock").value = p.stock;
+    document.getElementById("f_price").value = p.price;
+    document.getElementById("f_old").value = p.old_price || "";
+    document.getElementById("f_desc").value = p.description || "";
+    document.getElementById("f_images").value = (p.images || []).join("\n");
+    document.getElementById("f_features").value = (p.features || []).join("\n");
+    document.getElementById("f_featured").checked = !!p.featured;
+    document.getElementById("formTitle").textContent = `✏️ ویرایش: ${p.title}`;
+    document.getElementById("formSave").textContent = "💾 ذخیره و همگام‌سازی تلگرام";
+    document.getElementById("formSave").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  async function delProduct(id) {
+    if (!confirm("این محصول غیرفعال شده و پست تلگرامش برچسب «ناموجود» می‌گیرد. ادامه می‌دهید؟")) return;
+    const d = await admin.api(`/products/${id}`, { method: "DELETE" });
+    if (d && d.ok) {
+      OP.toast("محصول حذف شد" + (d.telegram?.length ? " و پست تلگرام به‌روزرسانی شد" : ""), "ok");
+      loadProducts();
+    }
+  }
+
+  document.getElementById("formSave").addEventListener("click", async () => {
+    const msg = document.getElementById("formMsg");
+    const editId = document.getElementById("editId").value;
+    const payload = {
+      title: document.getElementById("f_title").value.trim(),
+      category: document.getElementById("f_category").value.trim(),
+      stock: +document.getElementById("f_stock").value || 0,
+      price: +document.getElementById("f_price").value || 0,
+      old_price: +document.getElementById("f_old").value || 0,
+      description: document.getElementById("f_desc").value.trim(),
+      images: document.getElementById("f_images").value.split("\n").map(s=>s.trim()).filter(Boolean),
+      features: document.getElementById("f_features").value.split("\n").map(s=>s.trim()).filter(Boolean),
+      featured: document.getElementById("f_featured").checked ? 1 : 0,
+      active: 1
+    };
+    if (!payload.title || !payload.price) { msg.textContent = "عنوان و قیمت الزامی است"; msg.className = "msg err"; return; }
+    const btn = document.getElementById("formSave");
+    btn.disabled = true; btn.textContent = "در حال ذخیره و انتشار…";
+    try {
+      const d = editId
+        ? await admin.api(`/products/${editId}`, { method: "PUT", body: JSON.stringify(payload) })
+        : await admin.api("/products", { method: "POST", body: JSON.stringify(payload) });
+      if (d && d.ok) {
+        const tg = d.telegram || [];
+        const okCount = tg.filter(t => t.ok).length;
+        msg.className = "msg ok";
+        msg.textContent = editId
+          ? `ذخیره شد. ${d.action === "marked_gone" ? "پست تلگرام «ناموجود» شد" : "پست تلگرام به‌روزرسانی شد"} (${okCount}/${tg.length} کانال).`
+          : `محصول ساخته شد و در ${okCount}/${tg.length} کانال تلگرام منتشر شد. 🎉`;
+        resetForm();
+        loadProducts();
+      } else {
+        msg.className = "msg err"; msg.textContent = d?.error || "خطا در ذخیره";
+      }
+    } catch (e) { msg.className = "msg err"; msg.textContent = "خطای شبکه"; }
+    btn.disabled = false;
+    btn.textContent = editId ? "💾 ذخیره و همگام‌سازی تلگرام" : "💾 ذخیره و انتشار در تلگرام";
+  });
+
+  document.getElementById("reload").addEventListener("click", () => { loadProducts(); loadOrders(); loadActivations(); });
+
+  /* ---------- telegram test ---------- */
+  async function testTelegram() {
+    const s = document.getElementById("tgStatus");
+    s.textContent = "در حال بررسی اتصال…";
+    s.className = "tg-status";
+    try {
+      const h = { "X-Admin-Token": T };
+      const r = await fetch("/api/health");
+      const d = await r.json();
+      if (!d.tg) { s.textContent = "⚠️ توکن ربات تلگرام تنظیم نشده است."; s.className = "tg-status err"; return; }
+      s.textContent = "اتصال برقرار. برای تست واقعی، دکمه‌ی «ارسال پیام تست» را بزنید.";
+    } catch { s.textContent = "سرور در دسترس نیست."; s.className = "tg-status err"; }
+  }
+  document.getElementById("tgTest").addEventListener("click", async () => {
+    const s = document.getElementById("tgStatus");
+    s.textContent = "در حال ارسال پیام تست…";
+    const r = await fetch("/api/admin/telegram/test", { method: "POST", headers: { "X-Admin-Token": T } });
+    const d = await r.json();
+    s.className = "tg-status " + (d.ok ? "ok" : "err");
+    s.textContent = d.ok
+      ? `✅ پیام تست به ${d.test.filter(t=>t.ok).length} کانال ارسال شد.`
+      : `❌ ${d.error}`;
+  });
+
+  /* ---------- activations ---------- */
+  async function loadActivations() {
+    const rows = await admin.api("/activations");
+    if (!rows) return;
+    const tb = document.querySelector("#actTable tbody");
+    tb.innerHTML = rows.map(a => `
+      <tr>
+        <td dir="ltr">${a.code}</td>
+        <td dir="ltr">${a.github_login || "—"}</td>
+        <td dir="ltr">${a.repo_url || "—"}</td>
+        <td>${a.used ? '<span class="dim" style="color:var(--warn)">استفاده‌شده</span>' : '<span class="dim" style="color:var(--ok)">پایدار</span>'}</td>
+        <td class="dim">${a.created_at || ""}</td>
+      </tr>`).join("") || `<tr><td colspan="5" class="dim">کدی ثبت نشده</td></tr>`;
+  }
+  document.getElementById("actNew").addEventListener("click", () => {
+    const f = document.getElementById("actForm");
+    f.style.display = f.style.display === "none" ? "block" : "none";
+  });
+  document.getElementById("actSave").addEventListener("click", async () => {
+    const d = await admin.api("/activations", {
+      method: "POST",
+      body: JSON.stringify({
+        code: document.getElementById("a_code").value.trim(),
+        github_login: document.getElementById("a_login").value.trim(),
+        repo_url: document.getElementById("a_repo").value.trim()
+      })
+    });
+    if (d && d.ok) { OP.toast("کد فعالسازی ذخیره شد", "ok"); document.getElementById("actForm").style.display = "none"; loadActivations(); }
+    else OP.toast(d?.error || "خطا", "err");
+  });
+
+  /* ---------- orders ---------- */
+  async function loadOrders() {
+    const rows = await admin.api("/orders");
+    if (!rows) return;
+    const tb = document.querySelector("#orderTable tbody");
+    tb.innerHTML = rows.map(o => `
+      <tr>
+        <td dir="ltr">${o.tracking_number || "—"}</td>
+        <td>${o.product_id ? "#" + o.product_id : "—"}</td>
+        <td>${OP.fmt(o.amount)}</td>
+        <td>${o.status === "paid" ? '<span style="color:var(--ok)">پرداخت‌شده</span>'
+             : o.status === "pending" ? '<span class="dim">در انتظار</span>'
+             : o.status === "expired" ? '<span style="color:var(--warn)">منقضی</span>'
+             : '<span style="color:var(--bad)">' + o.status + '</span>'}</td>
+        <td class="dim">${o.created_at || ""}</td>
+      </tr>`).join("") || `<tr><td colspan="5" class="dim">سفارشی ثبت نشده</td></tr>`;
+  }
+
+  init();
+});
+</script>
+</body>
+</html>

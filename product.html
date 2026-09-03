@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>محصول — Omnipost</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="mark">✦</span> Omnipost</a>
+    <nav class="row">
+      <a class="link" href="index.html#products">محصولات</a>
+      <a class="link d-only" href="index.html#how">چطور کار می‌کند</a>
+    </nav>
+    <div class="spacer"></div>
+    <button class="icon" data-theme-toggle aria-label="تغییر حالت">🌙</button>
+  </div>
+</header>
+
+<main class="section">
+  <div class="wrap" id="prodWrap">
+    <p class="dim" style="text-align:center">در حال بارگذاری…</p>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>✦ Omnipost</span>
+    <a href="index.html"><- بازگشت به فروشگاه</a>
+  </div>
+</footer>
+
+<script src="js/app.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const wrap = document.getElementById("prodWrap");
+  let product;
+  try {
+    if (!OP.state.id) { wrap.innerHTML = `<p class="dim" style="text-align:center">محصولی انتخاب نشده است.</p>`; return; }
+    const r = await fetch(`/api/products/${OP.state.id}`);
+    if (!r.ok) { wrap.innerHTML = `<p class="dim" style="text-align:center">محصول یافت نشد.</p>`; return; }
+    product = await r.json();
+  } catch (e) {
+    wrap.innerHTML = `<p class="dim" style="text-align:center">خطا در بارگذاری. API متصل نیست؟</p>`;
+    return;
+  }
+
+  const feats = (product.features || []).map(f => `<li>${f}</li>`).join("");
+  const imgs = product.images || [];
+  const gallery = imgs[0]
+    ? `<img id="mainImg" src="${imgs[0]}" alt="${product.title}">`
+    : `<div style="font-size:4rem;opacity:.4">🛍</div>`;
+  const thumbs = imgs.length > 1
+    ? `<div class="row" style="margin-top:.7rem;justify-content:center">
+         ${imgs.map((s, i) => `<img src="${s}" data-i="${i}" class="thumb-i" style="width:56px;height:56px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid ${i===0?'var(--brand)':'transparent'}" alt="thumbnail">`).join("")}
+       </div>` : "";
+
+  wrap.innerHTML = `
+    <a href="index.html#products" style="color:var(--dim);font-size:.9rem">← بازگشت به فروشگاه</a>
+    <div class="prod" style="margin-top:1rem">
+      <div>
+        <div class="gallery">${gallery}</div>
+        ${thumbs}
+      </div>
+      <div class="info">
+        ${product.category ? `<div class="dim" style="color:var(--accent);font-weight:600;margin-bottom:.4rem">${product.category}</div>` : ""}
+        <h1>${product.title}</h1>
+        <div style="margin-top:.6rem">${OP.stockBadge(product)}</div>
+        <div class="price-box">${OP.price(product)}</div>
+        ${product.description ? `<p class="desc" style="margin-top:1rem">${product.description}</p>` : ""}
+        ${feats ? `<ul class="feat">${feats}</ul>` : ""}
+
+        <div class="buybox" id="buybox">
+          <div class="amt"><span>مبلغ قابل پرداخت</span><b id="amtLabel"></b></div>
+          ${OP.state.paid ? `
+            <p class="msg ok">✅ پرداخت شما با موفقیت ثبت شد. از خریدتان ممنونیم!</p>
+          ` : product.stock > 0 ? `
+            <div class="field">
+              <label for="email">ایمیل برای رسید و پیگیری</label>
+              <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
+            </div>
+            <button class="btn btn-primary btn-block" id="buyBtn">🛒 خرید امن با زرین‌پال</button>
+            <p class="msg" id="buyMsg"></p>
+          ` : `
+            <p class="msg err">متأسفانه این محصول در حال حاضر ناموجود است.</p>
+          `}
+        </div>
+      </div>
+    </div>`;
+
+  // gallery switch
+  const amtLabel = wrap.querySelector("#amtLabel");
+  if (amtLabel) amtLabel.textContent = `${OP.fmt(product.price)} ${OP.state.currency}`;
+  wrap.querySelectorAll(".thumb-i").forEach(t => t.addEventListener("click", () => {
+    wrap.querySelector("#mainImg").src = t.src;
+    wrap.querySelectorAll(".thumb-i").forEach(x => x.style.borderColor = "transparent");
+    t.style.borderColor = "var(--brand)";
+  }));
+
+  // buy
+  const buyBtn = wrap.querySelector("#buyBtn");
+  if (buyBtn) {
+    buyBtn.addEventListener("click", async () => {
+      const email = wrap.querySelector("#email").value.trim();
+      const msg = wrap.querySelector("#buyMsg");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg.textContent = "لطفا ایمیل معتبر وارد کنید"; msg.className = "msg err"; return; }
+      buyBtn.disabled = true; buyBtn.textContent = "در حال ایجاد پرداخت…";
+      try {
+        const r = await fetch("/api/payments/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ product_id: product.id, email })
+        });
+        const d = await r.json();
+        if (d.authorityURL) {
+          // save tracking number in sessionStorage for post-return verify
+          sessionStorage.setItem("op-tracking", d.authority);
+          location.href = d.authorityURL;
+        } else {
+          msg.textContent = d.error || "خطا در ایجاد پرداخت";
+          msg.className = "msg err";
+          buyBtn.disabled = false; buyBtn.textContent = "🛒 خرید امن با زرین‌پال";
+        }
+      } catch (e) {
+        msg.textContent = "خطای شبکه — دوباره تلاش کنید";
+        msg.className = "msg err";
+        buyBtn.disabled = false; buyBtn.textContent = "🛒 خرید امن با زرین‌پال";
+      }
+    });
+  }
+
+  // if returning from payment, verify status
+  const tracking = sessionStorage.getItem("op-tracking");
+  if (tracking && !OP.state.paid) {
+    try {
+      const r = await fetch(`/api/payments/verify?tracking_number=${encodeURIComponent(tracking)}`);
+      const d = await r.json();
+      const msg = document.createElement("p");
+      const buybox = wrap.querySelector("#buybox");
+      if (d.status === "paid") {
+        msg.className = "msg ok";
+        msg.textContent = "✅ پرداخت با موفقیت انجام شد!";
+        buybox.prepend(msg);
+        sessionStorage.removeItem("op-tracking");
+      } else if (d.status === "cancelled") {
+        msg.className = "msg err";
+        msg.textContent = "❌ پرداخت لغو شد.";
+        buybox.prepend(msg);
+      } else if (d.status === "expired") {
+        msg.className = "msg err";
+        msg.textContent = "⏱ پرداخت منقضی شد. دوباره تلاش کنید.";
+        buybox.prepend(msg);
+      }
+    } catch {}
+  }
+});
+</script>
+</body>
+</html>
